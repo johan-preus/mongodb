@@ -1,5 +1,6 @@
 const MongoClient = require("mongodb").MongoClient
 const assert = require("assert").strict
+const dboper = require("./operations")
 
 const url = "mongodb://localhost:27017/"
 const dbname = "nucampsite"
@@ -16,19 +17,42 @@ MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
         assert.strictEqual(err, null)
         console.log("Dropped Collection", result)
 
-        const collection = db.collection("campsites")
-
-        collection.insertOne(
+        dboper.insertDocument(
+            db,
             { name: "Breadcrumb Trail Campground", description: "Test" },
-            (err, result) => {
-                assert.strictEqual(err, null)
+            "campsites",
+            (result) => {
                 console.log("Insert Document:", result.ops)
+                dboper.findDocuments(db, "campsites", (docs) => {
+                    console.log("Found documents:", docs)
+                    dboper.updateDocument(
+                        db,
+                        { name: "Breadcrumb Trail Campground" },
+                        { description: "Updated test description" },
+                        "campsites",
+                        (result) => {
+                            console.log(
+                                "Updated document count:",
+                                result.result.nModified
+                            )
+                            dboper.findDocuments(db, "campsites", (docs) => {
+                                console.log("Found documents:", docs)
 
-                collection.find().toArray((err, docs) => {
-                    assert.strictEqual(err, null)
-                    console.log("Found Documents:", docs)
-
-                    client.close()
+                                dboper.removeDocument(
+                                    db,
+                                    { name: "Breadcrumb Trail Campground" },
+                                    "campsites",
+                                    (result) => {
+                                        console.log(
+                                            "Deleted document count:",
+                                            result.deletedCount
+                                        )
+                                        client.close()
+                                    }
+                                )
+                            })
+                        }
+                    )
                 })
             }
         )
